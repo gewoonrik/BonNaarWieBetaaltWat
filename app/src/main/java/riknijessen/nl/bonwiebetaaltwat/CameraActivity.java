@@ -1,5 +1,6 @@
 package riknijessen.nl.bonwiebetaaltwat;
 
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.support.v7.app.AppCompatActivity;
@@ -32,11 +33,13 @@ import android.widget.TextView;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
 public class CameraActivity extends Activity
 {
-    protected Button _button;
-    protected ImageView _image;
-    protected TextView _field;
+
+    @Bind(R.id.photo) public ImageView imageview;
     protected String _path;
     protected boolean _taken;
     protected static final String PHOTO_TAKEN	= "photo_taken";
@@ -45,8 +48,11 @@ public class CameraActivity extends Activity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        ButterKnife.bind(this);
+
         addLanguageData();
-       startCameraActivity();
+        startCameraActivity();
     }
 
     public void addLanguageData()   {
@@ -168,22 +174,18 @@ public class CameraActivity extends Activity
         }
 
         if (rotate != 0) {
-            int w = bitmap.getWidth();
-            int h = bitmap.getHeight();
-
-            // Setting pre rotate
-            Matrix mtx = new Matrix();
-            mtx.preRotate(rotate);
-
-            // Rotating Bitmap & convert to ARGB_8888, required by tess
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, false);
+           bitmap = ImagePreprocessor.rotate(bitmap, rotate);
         }
+        //make bitmap mutable
         bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+
+        ImagePreprocessor.preProcess(bitmap);
+        bitmap = ImagePreprocessor.RuiHuaBitmap(bitmap);
+        imageview.setImageBitmap(bitmap);
         TessBaseAPI baseApi = new TessBaseAPI();
-// DATA_PATH = Path to the storage
-// lang = for which the language data exists, usually "eng"
         baseApi.init(Environment.getExternalStorageDirectory().getAbsolutePath(), "nld");
-// Eg. baseApi.init("/mnt/sdcard/tesseract/tessdata/eng.traineddata", "eng");
+        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "0123456789,");
         baseApi.setImage(bitmap);
         String recognizedText = baseApi.getUTF8Text();
         baseApi.end();
